@@ -72,3 +72,4 @@ jobs:
       - name: Verify deployment
         run: |
           kubectl rollout status deployment/aks-static-web-app
+# OIDC immutable subject test
