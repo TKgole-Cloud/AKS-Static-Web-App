@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aks-static-web-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aks-static-web-app
+  template:
+    metadata:
+      labels:
+        app: aks-static-web-app
+    spec:
+      containers:
+        - name: web
+          image: aksstaticwebappacr.azurecr.io/aks-static-web-app:v1
+          ports:
+            - containerPort: 80

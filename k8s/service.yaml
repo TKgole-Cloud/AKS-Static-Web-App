@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aks-static-web-app-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: aks-static-web-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
