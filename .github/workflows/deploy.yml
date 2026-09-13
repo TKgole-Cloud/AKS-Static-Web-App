@@ -1,0 +1,73 @@
+name: Build and Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ACR_NAME: aksstaticwebappacr
+  ACR_LOGIN_SERVER: aksstaticwebappacr.azurecr.io
+  AKS_RESOURCE_GROUP: rg-aks-static-webapp
+  AKS_CLUSTER_NAME: aks-static-webapp
+  IMAGE_NAME: aks-static-web-app
+
+jobs:
+  build-and-deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # 1. Get the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Authenticate to Azure using OIDC
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # 3. Login to Azure Container Registry
+      - name: Login to ACR
+        run: |
+          az acr login --name ${{ env.ACR_NAME }}
+
+      # 4. Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -f docker/Dockerfile .
+
+      # 5. Push Docker image to ACR
+      - name: Push Docker image
+        run: |
+          docker push \
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # 6. Get AKS credentials
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
+            --name ${{ env.AKS_CLUSTER_NAME }} \
+            --overwrite-existing
+
+      # 7. Update Kubernetes deployment
+      - name: Deploy to AKS
+        run: |
+          kubectl set image deployment/aks-static-web-app \
+            web=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # 8. Wait for rollout
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/aks-static-web-app
