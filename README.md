@@ -1,130 +1,251 @@
 # AKS Static Web App
 
-A simple static web application built with **HTML, CSS, and Vanilla JavaScript**, containerized with **Docker**, stored in **Azure Container Registry (ACR)**, and deployed to **Azure Kubernetes Service (AKS)**.
+A containerized static web application deployed to **Microsoft Azure Kubernetes Service (AKS)** using **Docker, Azure Container Registry (ACR), Terraform, Kubernetes, GitHub, and GitHub Actions CI/CD**.
 
-The main goal of this project is to gain practical, hands-on experience with a complete **Cloud & DevOps deployment workflow**.
+The project demonstrates an end-to-end Cloud/DevOps workflow: application development, containerization, infrastructure provisioning, container registry management, Kubernetes deployment, and automated CI/CD.
 
-The project follows this flow:
+---
+
+## Project Overview
+
+This project demonstrates how a simple web application can be transformed from source code into a containerized workload and deployed to a managed Kubernetes platform.
+
+The application is intentionally simple so that the primary focus remains on the **Cloud and DevOps engineering workflow** rather than application complexity.
+
+### The workflow
 
 ```text
+Developer
+   │
+   ▼
 HTML / CSS / JavaScript
-          │
-          ▼
-      Git / GitHub
-          │
-          ▼
-        Docker
-          │
-          ▼
-   Docker Container
-      (local test)
-          │
-          ▼
- Azure Container Registry
-          │
-          ▼
-          AKS
-          │
-          ▼
- Kubernetes Deployment
-       3 replicas
-          │
-          ▼
- Kubernetes Service
-      LoadBalancer
-          │
-          ▼
-     Azure Public IP
-          │
-          ▼
-     Web Browser
+   │
+   ▼
+Git / GitHub
+   │
+   ▼
+Docker
+   │
+   ├── Local Container Test
+   │
+   ▼
+Azure Container Registry (ACR)
+   │
+   ▼
+Azure Kubernetes Service (AKS)
+   │
+   ├── Kubernetes Deployment
+   │       └── 3 Application Pods
+   │
+   └── LoadBalancer Service
+            │
+            ▼
+       Azure Public IP
+            │
+            ▼
+          Browser
 ```
 
 ---
 
-# Project Architecture
+# Problem This Project Solves
+
+A common challenge when deploying applications is moving from:
+
+> **"The application works on my computer."**
+
+to:
+
+> **"The application is consistently packaged, deployed, and accessible in the cloud."**
+
+A manually deployed application can become difficult to reproduce and maintain.
+
+For example:
+
+* Application environments can differ.
+* Deployments can require manual steps.
+* Servers may need to be configured individually.
+* Application versions can become difficult to track.
+* Infrastructure can be created inconsistently.
+* Container images need somewhere reliable to be stored.
+* Kubernetes workloads need to be deployed and updated consistently.
+
+This project addresses those problems by creating a repeatable deployment pipeline:
 
 ```text
-                         Internet
-                            │
-                            ▼
-                  Azure Load Balancer
-                            │
-                            ▼
-               Kubernetes LoadBalancer
-                       Service
-                            │
-              ┌─────────────┼─────────────┐
-              ▼             ▼             ▼
-           Pod 1          Pod 2          Pod 3
-              │             │             │
-              └─────────────┼─────────────┘
-                            │
-                         Nginx
-                            │
-                            ▼
-                  Static Web Application
-
-
+Source Code
+     ↓
 Docker Image
-     │
-     ▼
-Azure Container Registry
-     │
-     │ AcrPull permission
-     ▼
-     AKS
+     ↓
+Container Registry
+     ↓
+Kubernetes
+     ↓
+Automated Deployment
 ```
+
+The infrastructure and application deployment are therefore separated from the developer's local machine.
+
+---
+
+# Project Objectives
+
+The main objectives were to:
+
+* Containerize a web application with Docker.
+* Store the container image in Azure Container Registry.
+* Provision Azure infrastructure using Terraform.
+* Deploy the application to Azure Kubernetes Service.
+* Run multiple application replicas for basic availability.
+* Expose the application using a Kubernetes LoadBalancer.
+* Automate image building and deployment using GitHub Actions.
+* Authenticate GitHub Actions to Azure using OpenID Connect (OIDC).
+* Configure AKS to pull private images from ACR.
+* Demonstrate a repeatable Cloud/DevOps deployment workflow.
+* Document the implementation with architecture and deployment evidence.
 
 ---
 
 # Technology Stack
 
-| **Layer**         | **Technology**                 | **What we learn**            |
-| ----------------- | ------------------------------ | ---------------------------- |
-| Frontend          | HTML5                          | Web structure                |
-| Styling           | CSS3                           | UI/styling                   |
-| Logic             | Vanilla JavaScript             | Browser-side functionality   |
-| Container         | Docker                         | Package the application      |
-| Container Runtime | Docker Container               | Run and test the application |
-| Registry          | Azure Container Registry       | Store Docker images          |
-| Orchestration     | Azure Kubernetes Service (AKS) | Run and manage containers    |
-| IaC               | Terraform                      | Build Azure infrastructure   |
-| CI/CD             | GitHub Actions                 | Automate build/deployment    |
-| Source Control    | Git/GitHub                     | Version control              |
+| Technology               | Purpose                                     |
+| ------------------------ | ------------------------------------------- |
+| HTML                     | Application structure                       |
+| CSS                      | Application styling                         |
+| JavaScript               | Client-side functionality                   |
+| Git                      | Version control                             |
+| GitHub                   | Source code repository                      |
+| Docker                   | Application containerization                |
+| Azure Container Registry | Private container image registry            |
+| Kubernetes               | Container orchestration                     |
+| Azure Kubernetes Service | Managed Kubernetes platform                 |
+| Terraform                | Infrastructure as Code                      |
+| GitHub Actions           | CI/CD automation                            |
+| Azure OIDC               | Passwordless GitHub-to-Azure authentication |
 
 ---
 
-# 1. Build the Static Web Application
-
-The application was created using three basic web technologies:
+# Architecture
 
 ```text
-app/
-├── index.html
-├── style.css
-└── script.js
+                         ┌──────────────────────┐
+                         │      Developer       │
+                         │                      │
+                         │ HTML / CSS / JS      │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │        GitHub        │
+                         │    Source Control    │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │   GitHub Actions     │
+                         │                      │
+                         │ Build → Push → Deploy│
+                         └───────┬───────┬──────┘
+                                 │       │
+                    Docker Image │       │ Kubernetes Deployment
+                                 │       │
+                                 ▼       ▼
+                    ┌────────────────┐  ┌─────────────────────┐
+                    │      ACR       │  │        AKS          │
+                    │                │  │                     │
+                    │ Docker Image   │  │ Deployment          │
+                    │ Repository     │  │        │            │
+                    └───────┬────────┘  │        ▼            │
+                            │           │   ┌─────────────┐   │
+                            │ AcrPull   │   │ Pod 1       │   │
+                            └──────────►│   │ Pod 2       │   │
+                                        │   │ Pod 3       │   │
+                                        │   └──────┬──────┘   │
+                                        │          │          │
+                                        │          ▼          │
+                                        │   LoadBalancer      │
+                                        └──────────┬──────────┘
+                                                   │
+                                                   ▼
+                                            Azure Public IP
+                                                   │
+                                                   ▼
+                                               Browser
 ```
+
+---
+
+# Repository Structure
+
+```text
+AKS-Static-Web-App/
+│
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+│
+├── app/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
+│
+├── docker/
+│   └── Dockerfile
+│
+├── docs/
+│   └── screenshots/
+│
+├── k8s/
+│   ├── deployment.yaml
+│   └── service.yaml
+│
+├── terraform/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── ...
+│
+├── .gitignore
+└── README.md
+```
+
+---
+
+# Phase 1 — Application
+
+The application is a simple static web application built with:
+
+* HTML
+* CSS
+* JavaScript
+
+The application intentionally contains minimal business logic.
 
 ### Why?
 
-The application itself is intentionally simple.
+The objective of this project is not to demonstrate frontend development.
 
-The purpose of this project is to focus on **Cloud and DevOps**, rather than spending most of the project building a complicated frontend.
+The application acts as the workload that allows the project to demonstrate:
 
-The application gives us something real to containerize and deploy.
+* Docker
+* Kubernetes
+* Azure
+* Terraform
+* CI/CD
+* Container registries
+* Cloud deployment
+
+Keeping the application simple allows the infrastructure and deployment workflow to remain the focus.
+
+![Application](./docs/screenshots/phase-01-application.png)
 
 ---
 
-# 2. Containerize the Application with Docker
+# Phase 2 — Containerization with Docker
 
-A Dockerfile was created inside:
+The application was packaged into a Docker image using Nginx.
 
-```text
-docker/Dockerfile
-```
-
-The Dockerfile uses Nginx as the web server:
+### Dockerfile
 
 ```dockerfile
 FROM nginx:alpine
@@ -136,25 +257,29 @@ EXPOSE 80
 
 ### Why Docker?
 
-Docker packages the application and everything required to run it into a **container image**.
+Docker packages the application and its runtime environment into a portable container image.
 
-Instead of relying on the environment of the machine running the application, we create a repeatable package that can be run locally or in the cloud.
-
-The basic idea is:
+Instead of relying on:
 
 ```text
-Application Files
-       │
-       ▼
- Dockerfile
-       │
-       ▼
- Docker Image
+"My computer has everything configured correctly."
 ```
 
----
+we create:
 
-# 3. Build the Docker Image
+```text
+Application
+    +
+Runtime
+    +
+Configuration
+    ↓
+Container Image
+```
+
+This makes the application easier to test locally and deploy consistently to cloud environments.
+
+### Build
 
 The image was built from the project root:
 
@@ -162,447 +287,675 @@ The image was built from the project root:
 docker build -t aks-static-web-app:v1 -f docker/Dockerfile .
 ```
 
-The `-t` option gives the image a name and tag:
-
-```text
-aks-static-web-app:v1
-```
-
-### Why build an image?
-
-A Docker image is the **package we eventually deploy to Kubernetes**.
-
-The important distinction is:
-
-```text
-Dockerfile  → instructions
-Docker Image → packaged application
-Docker Container → running instance of the image
-```
-
----
-
-# 4. Run the Docker Container Locally
-
-Before sending anything to Azure, the image was tested locally as a container.
+### Local test
 
 ```bash
 docker run -d -p 8080:80 --name aks-static-web-app aks-static-web-app:v1
 ```
 
-The application was then accessed through:
+The application was then verified locally before moving to Azure.
 
-```text
-http://localhost:8080
-```
-
-### Why test locally first?
-
-We don't want to troubleshoot multiple systems at the same time.
-
-If the application doesn't work inside a local Docker container, there is no reason to immediately introduce:
-
-* Azure Container Registry
-* AKS
-* Kubernetes
-* Load Balancers
-
-The workflow is therefore:
-
-```text
-Build
-  ↓
-Test locally
-  ↓
-Only then deploy to Azure
-```
-
-This isolates problems and makes troubleshooting easier.
+![Docker](./docs/screenshots/phase-02-docker.png)
 
 ---
 
-# 5. Create Azure Container Registry
+# Phase 3 — Azure Container Registry
 
-Terraform was used to create an **Azure Container Registry (ACR)**.
+The Docker image was pushed to **Azure Container Registry (ACR)**.
 
-ACR is used to store our Docker image in Azure.
+Image:
 
 ```text
-Local Machine
-     │
-     │ docker push
-     ▼
-Azure Container Registry
-     │
-     │ image stored here
-     ▼
-aks-static-web-app:v1
+aksstaticwebappacr.azurecr.io/aks-static-web-app
 ```
 
 ### Why ACR?
 
-AKS needs somewhere to obtain the container image.
+AKS needs a reliable location from which it can retrieve container images.
 
-Instead of keeping the image only on the local computer, we store it in a cloud container registry that can be accessed by AKS.
+ACR provides a private Azure container registry integrated with the Azure environment.
 
-ACR becomes the bridge between:
+The deployment flow becomes:
 
 ```text
-Docker
-   ↓
-Container Registry
-   ↓
+Docker Image
+     ↓
+ACR
+     ↓
 AKS
 ```
 
+Instead of building the application directly inside AKS, the container image is built once and stored in a registry.
+
+This creates a cleaner separation between:
+
+* Building the application
+* Storing the application
+* Running the application
+
 ---
 
-# 6. Create AKS with Terraform
+# Phase 4 — Infrastructure as Code with Terraform
 
-Terraform was used to provision the AKS cluster.
+Azure infrastructure was provisioned using Terraform.
 
-The infrastructure created for the project includes:
+The main Azure resources include:
 
-* Azure Resource Group
-* Azure Container Registry
-* Azure Kubernetes Service
-* AKS managed identity
-* ACR pull permission for AKS
+```text
+Resource Group
+     │
+     ├── Azure Container Registry
+     │
+     └── Azure Kubernetes Service
+```
+
+### Resource Group
+
+```text
+rg-aks-static-webapp
+```
+
+### Azure Container Registry
+
+```text
+aksstaticwebappacr
+```
+
+### Azure Kubernetes Service
+
+```text
+aks-static-webapp
+```
 
 ### Why Terraform?
 
-Terraform allows the Azure infrastructure to be defined as code.
+Without Infrastructure as Code, cloud resources may be created manually through the Azure Portal.
 
-Instead of manually creating resources through the Azure Portal, the infrastructure can be recreated from the Terraform configuration.
+That can lead to:
 
-This gives us:
+* configuration drift
+* inconsistent environments
+* difficult recreation
+* undocumented infrastructure
+* manual deployment processes
 
-* Repeatability
-* Version control
-* Consistency
-* Easier cleanup
-* Infrastructure documentation
+Terraform allows the infrastructure configuration to be represented as code.
 
-The architecture therefore becomes:
+The environment can therefore be:
 
 ```text
-Terraform
-    │
-    ├── Resource Group
-    ├── ACR
-    └── AKS
+Terraform Configuration
+        ↓
+Terraform Plan
+        ↓
+Terraform Apply
+        ↓
+Azure Infrastructure
 ```
+
+This makes the infrastructure more repeatable and easier to manage.
 
 ---
 
-# 7. Give AKS Permission to Pull from ACR
+# Phase 5 — AKS Configuration
 
-AKS needs permission to retrieve our Docker image from ACR.
+The application was deployed to Azure Kubernetes Service.
 
-The AKS kubelet identity was given the:
+The Kubernetes Deployment runs:
+
+```text
+3 replicas
+```
+
+This produces:
+
+```text
+Deployment
+   │
+   ├── Pod 1
+   ├── Pod 2
+   └── Pod 3
+```
+
+### Why multiple replicas?
+
+Running multiple replicas provides basic workload redundancy.
+
+If one application Pod becomes unavailable, other replicas can continue serving the workload.
+
+This also allows Kubernetes to perform rolling updates rather than replacing every application instance simultaneously.
+
+---
+
+# Phase 6 — ACR Authentication
+
+The AKS cluster needs permission to pull the private container image from ACR.
+
+The AKS kubelet identity was granted:
 
 ```text
 AcrPull
 ```
 
-role on the Azure Container Registry.
+on the Azure Container Registry.
 
-This allows AKS to pull images from ACR without storing registry usernames and passwords inside Kubernetes.
+The resulting relationship is:
 
 ```text
-AKS Managed Identity
+AKS Kubelet Identity
         │
         │ AcrPull
         ▼
 Azure Container Registry
+        │
+        ▼
+Container Image
 ```
 
 ### Why?
 
-This follows a better cloud authentication pattern:
+The registry is private.
 
-**Use Azure identity and RBAC instead of hard-coded credentials.**
+AKS therefore requires appropriate Azure permissions to retrieve the image.
 
----
-
-# 8. Push the Docker Image to ACR
-
-The local image:
-
-```text
-aks-static-web-app:v1
-```
-
-was tagged with the ACR registry name:
-
-```text
-aksstaticwebappacr.azurecr.io/aks-static-web-app:v1
-```
-
-Then it was pushed:
-
-```bash
-docker push aksstaticwebappacr.azurecr.io/aks-static-web-app:v1
-```
-
-The image is now available inside Azure Container Registry.
-
-```text
-Local Docker Image
-        │
-        │ docker push
-        ▼
-       ACR
-        │
-        ▼
-aks-static-web-app:v1
-```
+This avoids storing registry credentials directly inside the Kubernetes deployment configuration.
 
 ---
 
-# 9. Deploy the Application to AKS
+# Phase 7 — Kubernetes Deployment
 
-A Kubernetes Deployment was created:
+The Kubernetes Deployment defines how the application should run.
 
-```text
-k8s/deployment.yaml
-```
-
-The Deployment points to the image stored in ACR:
-
-```yaml
-image: aksstaticwebappacr.azurecr.io/aks-static-web-app:v1
-```
-
-The Deployment was configured with:
+Key configuration:
 
 ```yaml
 replicas: 3
 ```
 
-### Why 3 replicas?
+The application container listens on:
 
-Instead of running only one Pod, Kubernetes runs three copies of the application.
+```text
+Port 80
+```
+
+The Deployment manages the application Pods.
+
+Conceptually:
 
 ```text
 Deployment
-    │
-    ├── Pod 1
-    ├── Pod 2
-    └── Pod 3
+     │
+     ▼
+ReplicaSet
+     │
+     ├── Pod
+     ├── Pod
+     └── Pod
 ```
 
-This gives us basic redundancy and allows Kubernetes to distribute incoming requests across multiple application instances.
-
-It also gives us practical experience with one of Kubernetes' most important concepts:
-
-**A Deployment manages the desired number of application replicas.**
+Kubernetes is responsible for maintaining the desired number of replicas.
 
 ---
 
-# 10. Create a Kubernetes LoadBalancer Service
+# Phase 8 — Kubernetes LoadBalancer
 
-A Kubernetes Service was created:
+The application was exposed using a Kubernetes:
 
 ```text
-k8s/service.yaml
-```
-
-The Service uses:
-
-```yaml
+Service
 type: LoadBalancer
 ```
 
-The Service selects the Pods using:
+The traffic flow is:
+
+```text
+Internet
+   ↓
+Azure Public IP
+   ↓
+LoadBalancer Service
+   ↓
+Kubernetes Pods
+   ↓
+Nginx
+   ↓
+Static Web Application
+```
+
+### Why a LoadBalancer?
+
+Pods are internal Kubernetes workloads.
+
+A LoadBalancer Service provides an external entry point so that users can access the application from outside the cluster.
+
+The service also uses a selector to identify the application Pods.
 
 ```yaml
 selector:
   app: aks-static-web-app
 ```
 
-and exposes port 80:
-
-```yaml
-ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 80
-```
-
-### Why use a Service?
-
-Pods are temporary Kubernetes resources. Their IP addresses can change.
-
-The Service provides a **stable endpoint** for accessing the application.
-
-The LoadBalancer type also asks Azure to provision an external load balancer and public IP.
-
-The traffic flow becomes:
-
-```text
-Internet
-   │
-   ▼
-Azure Load Balancer
-   │
-   ▼
-Kubernetes Service
-   │
-   ├── Pod 1
-   ├── Pod 2
-   └── Pod 3
-```
+This connects the Service to the matching Pods.
 
 ---
 
-# 11. Verify the Deployment
+# Phase 9 — CI/CD with GitHub Actions
 
-The Kubernetes Pods were checked with:
+The project was automated using GitHub Actions.
 
-```bash
-kubectl get pods
-```
-
-The expected result was three running replicas:
-
-```text
-NAME                         READY   STATUS
-aks-static-web-app-xxxxx     1/1     Running
-aks-static-web-app-xxxxx     1/1     Running
-aks-static-web-app-xxxxx     1/1     Running
-```
-
-The Service was checked with:
-
-```bash
-kubectl get service
-```
-
-The Service received an external IP from Azure.
-
----
-
-# 12. Access the Application from the Browser
-
-The application was finally accessed using the external IP assigned to the Kubernetes LoadBalancer Service.
-
-```text
-Browser
-   │
-   ▼
-Public IP
-   │
-   ▼
-Azure Load Balancer
-   │
-   ▼
-Kubernetes Service
-   │
-   ├── Pod 1
-   ├── Pod 2
-   └── Pod 3
-   │
-   ▼
-Nginx
-   │
-   ▼
-Static Web Application
-```
-
-The application successfully loaded in the browser.
-
-This confirms that the complete deployment path is working:
-
-```text
-Source Code
-     ↓
-Docker Image
-     ↓
-Local Container Test
-     ↓
-Azure Container Registry
-     ↓
-AKS
-     ↓
-3 Kubernetes Replicas
-     ↓
-LoadBalancer Service
-     ↓
-Public IP
-     ↓
-Browser
-```
-
----
-
-# Current Project Status
-
-| Component                       | Status       |
-| ------------------------------- | ------------ |
-| HTML/CSS/JavaScript application | ✅ Complete   |
-| Dockerfile                      | ✅ Complete   |
-| Docker image                    | ✅ Built      |
-| Local Docker container test     | ✅ Working    |
-| Azure Container Registry        | ✅ Created    |
-| Docker image pushed to ACR      | ✅ Complete   |
-| AKS cluster                     | ✅ Created    |
-| AKS → ACR authentication        | ✅ Configured |
-| Kubernetes Deployment           | ✅ Complete   |
-| 3 application replicas          | ✅ Running    |
-| LoadBalancer Service            | ✅ Complete   |
-| Public IP                       | ✅ Assigned   |
-| Browser access                  | ✅ Working    |
-
----
-
-# Project Structure
-
-```text
-aks-static-webapp/
-│
-├── app/
-│   ├── index.html
-│   ├── style.css
-│   └── script.js
-│
-├── docker/
-│   └── Dockerfile
-│
-├── k8s/
-│   ├── deployment.yaml
-│   └── service.yaml
-│
-├── terraform/
-│   ├── main.tf
-│   └── outputs.tf
-│
-├── docs/
-│   └── architecture diagram/
-│
-├── .github/
-│   └── workflows/
-│
-├── .gitignore
-└── README.md
-```
-
-# Next Phase
-
-The next stage of the project will focus on **CI/CD with GitHub Actions**.
-
-The goal is to automate the process so that instead of manually building and pushing the image, a GitHub workflow can:
+The pipeline follows:
 
 ```text
 Git Push
    ↓
 GitHub Actions
    ↓
+Checkout Repository
+   ↓
+Login to Azure
+   ↓
+Login to ACR
+   ↓
 Build Docker Image
    ↓
 Push Image to ACR
    ↓
-Deploy Updated Image to AKS
+Get AKS Credentials
+   ↓
+Update Kubernetes Deployment
+   ↓
+Rolling Update
+   ↓
+Verify Deployment
 ```
 
-This will complete the core **build → containerize → registry → Kubernetes → deployment automation** workflow.
+The container image is tagged using the Git commit SHA:
+
+```text
+aks-static-web-app:<commit-sha>
+```
+
+### Why use the commit SHA?
+
+Instead of relying only on a mutable tag such as:
+
+```text
+latest
+```
+
+each deployment receives a unique identifier associated with a specific Git commit.
+
+This makes it easier to identify which version of the source code is running in AKS.
+
+---
+
+# Phase 10 — GitHub OIDC Authentication
+
+GitHub Actions authenticates to Azure using **OpenID Connect (OIDC)**.
+
+The workflow uses:
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+```
+
+GitHub Actions obtains an identity token and Azure verifies that token against the configured federated identity.
+
+The flow is:
+
+```text
+GitHub Actions
+      │
+      │ OIDC Token
+      ▼
+Microsoft Entra ID
+      │
+      │ Federated Identity
+      ▼
+Azure Service Principal
+      │
+      ▼
+Azure Resources
+```
+
+### Why OIDC?
+
+Traditional CI/CD pipelines often require long-lived credentials such as client secrets.
+
+OIDC allows the workflow to authenticate without storing a long-lived Azure password/secret in GitHub.
+
+This provides a more modern authentication model for CI/CD.
+
+---
+
+# Phase 11 — Automated Deployment
+
+When changes are pushed to the `main` branch:
+
+```text
+Developer
+    │
+    │ git push
+    ▼
+GitHub
+    │
+    ▼
+GitHub Actions
+    │
+    ├── Build image
+    │
+    ├── Push image to ACR
+    │
+    └── Update AKS
+            │
+            ▼
+       Kubernetes
+            │
+            ▼
+      Rolling Update
+```
+
+The deployment is then verified using:
+
+```bash
+kubectl rollout status deployment/aks-static-web-app
+```
+
+This confirms that Kubernetes successfully completed the rollout.
+
+![CI/CD Pipeline](./docs/screenshots/phase-05-cicd.png)
+
+---
+
+# Deployment Verification
+
+The Kubernetes environment was verified using:
+
+```bash
+kubectl get nodes
+```
+
+```bash
+kubectl get pods
+```
+
+```bash
+kubectl get deployment
+```
+
+```bash
+kubectl get svc
+```
+
+The expected application state was:
+
+```text
+Deployment: 1
+Replicas:   3
+Pods:       3 Running
+Service:    LoadBalancer
+```
+
+The application was then accessed through the Azure public IP address.
+
+---
+
+# What This Project Demonstrates
+
+This project demonstrates practical experience with the following Cloud/DevOps concepts:
+
+### Cloud
+
+* Azure Resource Groups
+* Azure Container Registry
+* Azure Kubernetes Service
+* Azure managed identities
+* Azure RBAC
+
+### Containers
+
+* Docker
+* Dockerfiles
+* Docker image creation
+* Container testing
+* Container registries
+
+### Kubernetes
+
+* Deployments
+* ReplicaSets
+* Pods
+* Services
+* LoadBalancers
+* Replica management
+* Rolling updates
+* Container image deployment
+
+### Infrastructure as Code
+
+* Terraform
+* Azure resource provisioning
+* Declarative infrastructure
+* Repeatable environments
+
+### CI/CD
+
+* GitHub Actions
+* Automated Docker builds
+* Image publishing
+* Kubernetes deployment automation
+* Deployment verification
+
+### Identity
+
+* GitHub OIDC
+* Microsoft Entra ID
+* Federated credentials
+* Azure RBAC
+
+### Version Control
+
+* Git
+* GitHub
+* Commit-based container image tagging
+
+---
+
+# Why This Architecture?
+
+The architecture deliberately separates responsibilities.
+
+| Component             | Responsibility              |
+| --------------------- | --------------------------- |
+| GitHub                | Source control              |
+| GitHub Actions        | Automation                  |
+| Docker                | Application packaging       |
+| ACR                   | Image storage               |
+| Terraform             | Infrastructure provisioning |
+| AKS                   | Container orchestration     |
+| Kubernetes Deployment | Application lifecycle       |
+| Kubernetes Service    | Network exposure            |
+| Azure                 | Cloud infrastructure        |
+
+This creates a simple but realistic Cloud/DevOps workflow.
+
+---
+
+# Key Engineering Decisions
+
+### Simple Application
+
+The application was intentionally kept simple.
+
+**Reason:** The purpose of the project is to demonstrate Cloud/DevOps engineering rather than frontend development.
+
+### Docker + Nginx
+
+Nginx provides a lightweight production-style web server for the static application.
+
+### ACR
+
+ACR provides private storage for the Docker image and integrates naturally with Azure.
+
+### AKS
+
+AKS provides managed Kubernetes rather than requiring the Kubernetes control plane to be operated manually.
+
+### Terraform
+
+Terraform makes Azure infrastructure reproducible and version-controlled.
+
+### Three Replicas
+
+Three replicas demonstrate Kubernetes workload management and provide basic redundancy.
+
+### GitHub Actions
+
+GitHub Actions automates the deployment process and removes repetitive manual deployment steps.
+
+### OIDC
+
+OIDC removes the need for long-lived Azure client secrets in the GitHub Actions workflow.
+
+### Commit SHA Image Tags
+
+Each CI/CD deployment produces a uniquely identifiable container image version.
+
+---
+
+# Lessons Learned
+
+This project provided practical experience with the relationship between the major Cloud/DevOps components.
+
+The most important workflow learned was:
+
+```text
+Code
+ ↓
+Git
+ ↓
+Docker
+ ↓
+ACR
+ ↓
+Kubernetes
+ ↓
+AKS
+ ↓
+Service
+ ↓
+Application
+```
+
+I also learned that each layer has a different responsibility.
+
+For example:
+
+```text
+Docker
+→ Packages the application
+
+ACR
+→ Stores the image
+
+Kubernetes
+→ Manages the application workload
+
+AKS
+→ Provides the managed Kubernetes platform
+
+Terraform
+→ Creates and manages infrastructure
+
+GitHub Actions
+→ Automates the deployment process
+```
+
+Understanding these boundaries is important when troubleshooting Cloud/DevOps environments.
+
+---
+
+# Project Outcome
+
+The final environment successfully provides:
+
+```text
+Git Push
+    ↓
+Automated CI/CD
+    ↓
+Docker Image Build
+    ↓
+ACR Push
+    ↓
+AKS Deployment
+    ↓
+3 Running Pods
+    ↓
+LoadBalancer
+    ↓
+Public Application
+```
+
+A code change can therefore move from the GitHub repository to the running AKS application through an automated deployment pipeline.
+
+---
+
+# Future Work
+
+This project intentionally focuses on the core **Cloud + Docker + Kubernetes + Terraform + CI/CD** workflow.
+
+Advanced troubleshooting and operational scenarios are being kept as a **separate AKS Troubleshooting project** rather than adding unnecessary complexity to this repository.
+
+Future learning areas may include:
+
+* Kubernetes troubleshooting
+* `ImagePullBackOff`
+* `CrashLoopBackOff`
+* Service selector failures
+* Container port problems
+* Readiness and liveness failures
+* Kubernetes networking
+* Monitoring and logging
+* Helm
+* GitOps
+* Argo CD
+* Cloud security
+
+These are deliberately outside the scope of this project.
+
+---
+
+# Project Status
+
+**Status: Complete**
+
+The application has been:
+
+* ✅ Developed
+* ✅ Containerized
+* ✅ Tested locally
+* ✅ Stored in Azure Container Registry
+* ✅ Deployed to AKS
+* ✅ Provisioned with Terraform
+* ✅ Configured with ACR Pull permissions
+* ✅ Exposed through a LoadBalancer
+* ✅ Automated with GitHub Actions
+* ✅ Authenticated through Azure OIDC
+* ✅ Updated through CI/CD
+* ✅ Verified in AKS
+* ✅ Documented
+
+---
+
+# Portfolio Focus
+
+This project demonstrates my practical understanding of:
+
+> **Cloud Infrastructure + Containers + Kubernetes + Infrastructure as Code + CI/CD**
+
+It represents an end-to-end deployment workflow rather than a collection of isolated technologies.
+
+
